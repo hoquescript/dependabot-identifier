@@ -16,34 +16,55 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-app.get<{}, MessageResponse>("/", async (req, res) => {
-  try {
-    // Repository Owner Name
-    const owner = "Kuznetsov228";
-    // Repository Name
-    const repo = "lab00";
-    // File to match
-    const path = "dependabot.yml";
+const SAMPLE = {
+  200: {
+    username: "hoquescript",
+    repository: "dependabot-identifier",
+  },
+  404: {
+    username: "Kuznetsov228",
+    repository: "lab00",
+  },
+};
 
-    // Fetching file information
-    const response = await axios.get(
-      `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
-      {
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+const PROJECTS = [
+  {
+    username: "hoquescript",
+    repository: "dependabot-identifier",
+  },
+  {
+    username: "Kuznetsov228",
+    repository: "lab00",
+  },
+];
+
+app.get<{}, MessageResponse>("/", async (req, res) => {
+  const enabledProjects = [];
+  const disabledProjects = [];
+  for (const project of PROJECTS) {
+    try {
+      const owner = project.username;
+      const repo = project.repository;
+      await axios.get(
+        `https://api.github.com/repos/${owner}/${repo}/contents/dependabot.yml`,
+        {
+          headers: {
+            Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          },
         },
-      },
-    );
-    res.json({
-      message: "Project contains a dependabot file",
-      response: response.data,
-    });
-  } catch (err) {
-    //If the dependabot.yml is not installed this error will be thrown
-    res.status(404).json({
-      message: "Project does not contain a dependabot file",
-    });
+      );
+      enabledProjects.push(project);
+    } catch (error) {
+      disabledProjects.push(project);
+    }
   }
+  res.json({
+    message: "Dependabot Identifier",
+    response: {
+      enabledProjects,
+      disabledProjects,
+    },
+  });
 });
 
 app.use(middlewares.notFound);
