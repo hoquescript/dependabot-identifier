@@ -3,3 +3,11 @@ export default interface MessageResponse {
   response?: any;
   error?: any;
 }
+
+export interface DependabotResponse {
+  id: number;
+  user_name: string;
+  project_name: string;
+  url: string;
+  success: boolean;
+}

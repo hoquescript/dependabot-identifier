@@ -6,6 +6,7 @@ import cors from "cors";
 import * as middlewares from "./middlewares";
 import MessageResponse from "./interfaces/MessageResponse";
 import axios from "axios";
+import pool from "./library/db";
 
 require("dotenv").config();
 
@@ -65,6 +66,16 @@ app.get<{}, MessageResponse>("/", async (req, res) => {
       disabledProjects,
     },
   });
+});
+
+app.get<{}, any>("/sample", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM users LIMIT 10");
+    res.json(result.rows);
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
 });
 
 app.use(middlewares.notFound);
