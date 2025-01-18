@@ -20,7 +20,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@apollo/client": "^3.12.5",
+    "@apollo/client": "^3.12.6",
     "@urql/core": "^5.1.0",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
