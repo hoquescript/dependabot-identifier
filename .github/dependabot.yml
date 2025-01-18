@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: "npm" # or other ecosystems like "pip", "maven", "gradle"
+    directory: "/" # Location of the dependency files
+    schedule:
+      interval: "weekly" # Options: daily, weekly, monthly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "example-dependency"
+        versions: ["1.x", "<2.0"]
