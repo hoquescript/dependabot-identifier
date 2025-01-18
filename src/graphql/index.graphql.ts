@@ -1,7 +1,7 @@
 import { gql } from "@urql/core";
 
 export const RATE_LIMIT_QUERY = gql`
-  {
+  query Rate {
     rateLimit {
       limit
       cost
@@ -10,6 +10,7 @@ export const RATE_LIMIT_QUERY = gql`
     }
   }
 `;
+
 export const DEPENDABOT_QUERY = `
   query GetDependabotExistence {
     repository(owner: "hoquescript", name: "dependabot-identifier") {

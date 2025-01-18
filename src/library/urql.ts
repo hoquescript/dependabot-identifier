@@ -1,11 +1,12 @@
 import { Client, cacheExchange, fetchExchange } from "@urql/core";
+import { GITHUB_TOKEN } from "../config";
 
 const client = new Client({
   url: "https://api.github.com/graphql",
   exchanges: [cacheExchange, fetchExchange],
   fetchOptions: {
     headers: {
-      Authorization: `Bearer ${process.env.NODE_GITHUB_TOKEN}`,
+      Authorization: `Bearer ${GITHUB_TOKEN}`,
       "Content-Type": "application/json",
     },
   },
