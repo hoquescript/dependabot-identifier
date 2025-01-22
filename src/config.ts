@@ -1,7 +1,7 @@
 require("dotenv").config();
 
-export const CONCURRENCY = 20;
-export const BATCH_SIZE = 5000;
+export const CONCURRENCY = 5;
+export const BATCH_SIZE = 100;
 
 export const DB_CONFIG = {
   host: process.env.DB_HOST,

@@ -8,25 +8,30 @@ import { DEPENDABOT_QUERY, RATE_LIMIT_QUERY } from "./graphql/index.graphql";
 import client from "./library/urql";
 import generateQueries from "./utils/getQueries";
 import getLimit from "./utils/getLimit";
+import { BATCH_SIZE } from "./config";
 
-getLimit();
+// getLimit();
 
-// async function run() {
-//   try {
-//     const repositories = await getRepositories(0);
-//     const queries = generateQueries(repositories);
-//     // console.log(queries);
+async function run() {
+  try {
+    const repositories = await getRepositories({
+      offset: 0,
+      limit: BATCH_SIZE,
+    });
+    console.log(repositories);
+    const queries = generateQueries(repositories);
+    // console.log(queries);
 
-//     const { data } = await client.query(queries, {});
-//     console.log(data);
-//     // const hasDependabot =
-//     //   data.repository.yml !== null || data.repository.yaml !== null;
-//     // console.log(hasDependabot);
-//   } catch (error) {
-//     console.log(error);
-//   }
-// }
-// run().then(() => getLimit());
+    const { data } = await client.query(queries, {});
+    console.log(data);
+    // const hasDependabot =
+    //   data.repository.yml !== null || data.repository.yaml !== null;
+    // console.log(hasDependabot);
+  } catch (error) {
+    console.log(error);
+  }
+}
+run().then(() => getLimit());
 
 // run();
 
