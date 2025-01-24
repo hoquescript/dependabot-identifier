@@ -1,5 +1,6 @@
 import axios from "axios";
 import pQueue from "p-queue";
+import { GITHUB_TOKENS } from "../config";
 
 export const github = axios.create({
   headers: {
@@ -8,4 +9,8 @@ export const github = axios.create({
   },
 });
 
-export const queue = new pQueue({ concurrency: 20 });
+export const queue = new pQueue({
+  concurrency: GITHUB_TOKENS.length * 2,
+  interval: 1000,
+  intervalCap: GITHUB_TOKENS.length,
+});

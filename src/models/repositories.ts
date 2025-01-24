@@ -1,25 +1,32 @@
-import { BATCH_SIZE } from "../config";
-import pool from "../library/db";
-
+import { Pool } from "pg";
 export interface Repository {
   id: number;
   name: number;
   user_id: number;
 }
-export async function getRepositories(props: {
-  offset: number;
-  limit: number;
-}): Promise<Repository[]> {
-  const { offset, limit } = props;
-  const query = `
-    SELECT id, name, user_id
-      FROM public.repositories t
-      LIMIT ${limit}
-      OFFSET ${offset}
-  `;
 
-  const { rows } = await pool.query(query);
-  return rows;
+export async function fetchRepositoriesBatch(
+  pool: Pool,
+  lastId: number,
+  batchSize: number,
+): Promise<Repository[]> {
+  const result = await pool.query<Repository>(
+    `
+    SELECT id, name, user_id
+    FROM public.repositories
+    WHERE id > $1
+    AND id NOT IN (
+      SELECT repository_id 
+      FROM repository_dependabot_status
+      WHERE error IS NULL
+    )
+    ORDER BY id
+    LIMIT $2
+  `,
+    [lastId, batchSize],
+  );
+
+  return result.rows;
 }
 
 // export async function insertRepositories(repositories: Repository[]) {
