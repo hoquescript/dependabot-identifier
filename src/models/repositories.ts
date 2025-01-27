@@ -1,41 +1,60 @@
-import { Pool } from "pg";
+import pool from "../library/db";
+import logger from "../library/logger";
+import client from "../library/urql";
+import tokenManager from "./token";
+
 export interface Repository {
   id: number;
-  name: number;
-  user_id: number;
+  name: string;
+  user_name: string;
+}
+export async function getRepositories(props: {
+  offset: number;
+  limit: number;
+}): Promise<Repository[]> {
+  const { offset, limit } = props;
+  const query = `
+    SELECT id, name, user_name
+      FROM public.repositories t
+      ORDER BY id ASC
+      LIMIT ${limit}
+      OFFSET ${offset}
+  `;
+
+  const { rows } = await pool.query(query);
+  return rows;
 }
 
-export async function fetchRepositoriesBatch(
-  pool: Pool,
-  lastId: number,
-  batchSize: number,
-): Promise<Repository[]> {
-  const result = await pool.query<Repository>(
-    `
-    SELECT id, name, user_id
-    FROM public.repositories
-    WHERE id > $1
-    AND id NOT IN (
-      SELECT repository_id 
-      FROM repository_dependabot_status
-      WHERE error IS NULL
+interface Response {
+  [key: string]: {
+    yml: null | any;
+    yaml: null | any;
+  };
+}
+export async function getMetaInfo(
+  queries: string,
+): Promise<Response | undefined> {
+  const { data } = await client
+    .query<Response>(
+      queries,
+      {},
+      {
+        fetchOptions: {
+          headers: {
+            Authorization: `Bearer ${tokenManager.getCurrentToken()}`,
+          },
+        },
+      },
     )
-    ORDER BY id
-    LIMIT $2
-  `,
-    [lastId, batchSize],
-  );
-
-  return result.rows;
+    .toPromise();
+  return data;
 }
 
-// export async function insertRepositories(repositories: Repository[]) {
-//   const values = repositories.map(
-//     (repository) =>
-//       `('${repository.project_id}', '${repository.user_name}', '${repository.project_name}', '${repository.url}')`,
-//   );
-//   const query = `INSERT INTO repositories (project_id, user_name, project_name, url) VALUES ${values.join(
-//     ",",
-//   )}`;
-//   await pool.query(query);
-// }
+export async function updateRepository(id: number, type: "yaml" | "yml") {
+  const query = `
+    UPDATE repositories
+      SET installed = true, extension = '${type}'
+      WHERE id = ${id};
+  `;
+  await pool.query(query);
+}

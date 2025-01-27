@@ -6,7 +6,9 @@ function generateQueries(repositories: Repository[]): string {
       ${repositories
         .map(
           (repository) =>
-            `repository_${repository.id}:repository(owner: "${repository.user_id}", name: "${repository.name}") {
+            `Repository_${repository.id.toString()}:repository(owner: "${
+              repository.user_name
+            }", name: "${repository.name}") {
             yml: object(expression: "HEAD:.github/dependabot.yml") {
               id
             }

@@ -1,84 +1,81 @@
-import express from "express";
-import morgan from "morgan";
-import helmet from "helmet";
-import cors from "cors";
+import {
+  getMetaInfo,
+  getRepositories,
+  updateRepository,
+} from "./models/repositories";
+import generateQueries from "./utils/getQueries";
+import getLimit from "./utils/getLimit";
+import { BATCH_SIZE, REPOSITORY_COUNT } from "./config";
+import tokenManager from "./models/token";
+import { updateProgress } from "./models/progress";
+import logger from "./library/logger";
 
-import * as middlewares from "./middlewares";
-import MessageResponse from "./interfaces/MessageResponse";
-import axios from "axios";
-import pool from "./library/db";
-
-require("dotenv").config();
-
-const app = express();
-
-app.use(morgan("dev"));
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-
-const SAMPLE = {
-  200: {
-    username: "hoquescript",
-    repository: "dependabot-identifier",
-  },
-  404: {
-    username: "Kuznetsov228",
-    repository: "lab00",
-  },
-};
-
-const PROJECTS = [
-  {
-    username: "hoquescript",
-    repository: "dependabot-identifier",
-  },
-  {
-    username: "Kuznetsov228",
-    repository: "lab00",
-  },
-];
-
-app.get<{}, MessageResponse>("/", async (req, res) => {
-  const enabledProjects = [];
-  const disabledProjects = [];
-  for (const project of PROJECTS) {
+async function run() {
+  let offset = 706100;
+  let batch = 7061;
+  while (REPOSITORY_COUNT > offset) {
     try {
-      const owner = project.username;
-      const repo = project.repository;
-      await axios.get(
-        `https://api.github.com/repos/${owner}/${repo}/contents/dependabot.yml`,
-        {
-          headers: {
-            Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          },
-        },
-      );
-      enabledProjects.push(project);
+      const repositories = await getRepositories({
+        offset: offset,
+        limit: BATCH_SIZE,
+      });
+      const queries = generateQueries(repositories);
+      try {
+        const data = await getMetaInfo(queries);
+        if (!data) {
+          logger.error(
+            `Batch Error: ${batch}, Offset: ${offset}, First Repository: ${
+              repositories[0].id
+            }, Last Repository: ${repositories[repositories.length - 1].id}`,
+          );
+          continue;
+        }
+        Object.entries(data).forEach(([key, value]) => {
+          // If the repository is non-existent at this moment
+          if (!value) return;
+
+          // If the repository has no dependabot file
+          const { yml, yaml } = value;
+          if (!yml && !yaml) return;
+
+          // If the repository has dependabot file
+          const repositoryId = Number(key.split("_")[1]);
+          if (!repositoryId) return;
+
+          logger.info({ key: repositoryId, value });
+
+          if (yml) {
+            updateRepository(repositoryId, "yml");
+          } else {
+            updateRepository(repositoryId, "yaml");
+          }
+        });
+      } catch (apiError: any) {
+        // Rate limit handling
+        if (apiError.message.includes("rate limit")) {
+          logger.warn("Rate limit reached. Waiting...");
+          tokenManager.rotateToken();
+          await tokenManager.waitForReset();
+          continue; // Retry the current batch
+        }
+        throw apiError;
+      }
+
+      // Updating the progress in the database
+      console.log(`DEBUG: Batch: ${batch}, Offset: ${offset}`);
+      await updateProgress({
+        offset_count: offset,
+        batch_number: batch,
+        first_repo: repositories[0].id,
+        last_repo: repositories[repositories.length - 1].id,
+      });
+
+      // Incrementing the values for the next batch
+      offset += BATCH_SIZE;
+      batch++;
     } catch (error) {
-      disabledProjects.push(project);
+      console.log(error);
     }
   }
-  res.json({
-    message: "Dependabot Identifier",
-    response: {
-      enabledProjects,
-      disabledProjects,
-    },
-  });
-});
-
-app.get<{}, any>("/sample", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM users LIMIT 10");
-    res.json(result.rows);
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send("Server Error");
-  }
-});
-
-app.use(middlewares.notFound);
-app.use(middlewares.errorHandler);
-
-export default app;
+}
+run();

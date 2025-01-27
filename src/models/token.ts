@@ -1,67 +1,45 @@
-interface TokenStatus {
-  token: string;
-  remainingPoints: number;
-  resetAt: Date;
-}
+import { GITHUB_TOKENS } from "../config";
+import { RATE_LIMIT_QUERY } from "../graphql/index.graphql";
+import client from "../library/urql";
 
-class GitHubTokenManager {
-  private tokens: TokenStatus[] = [];
+class TokenManager {
+  private tokens: string[];
+  private currentTokenIndex: number = 0;
 
   constructor(tokens: string[]) {
-    this.tokens = tokens.map((token) => ({
-      token,
-      remainingPoints: 5000,
-      resetAt: new Date(),
-    }));
+    this.tokens = tokens;
   }
 
-  async getBestToken(): Promise<string> {
-    const now = new Date();
-    const availableTokens = this.tokens
-      .filter((t) => t.remainingPoints > 0 || t.resetAt < now)
-      .sort((a, b) => b.remainingPoints - a.remainingPoints);
+  getCurrentToken(): string {
+    return this.tokens[this.currentTokenIndex];
+  }
 
-    if (availableTokens.length === 0) {
-      const earliestReset = Math.min(
-        ...this.tokens.map((t) => t.resetAt.getTime()),
-      );
-      const waitTime = earliestReset - now.getTime() + 1000;
+  rotateToken() {
+    this.currentTokenIndex = (this.currentTokenIndex + 1) % this.tokens.length;
+  }
+
+  async checkRateLimit(): Promise<number> {
+    try {
+      const { data } = await client.query(RATE_LIMIT_QUERY, {}).toPromise();
+      return data?.rateLimit?.resetAt
+        ? new Date(data.rateLimit.resetAt).getTime()
+        : Date.now() + 15 * 60 * 1000; // Default 15 min wait
+    } catch {
+      return Date.now() + 15 * 60 * 1000;
+    }
+  }
+
+  async waitForReset() {
+    const resetTime = await this.checkRateLimit();
+    const waitTime = resetTime - Date.now();
+
+    if (waitTime > 0) {
+      console.log(`Waiting for ${waitTime / 1000} seconds`);
       await new Promise((resolve) => setTimeout(resolve, waitTime));
-      return this.getBestToken();
     }
-
-    return availableTokens[0].token;
-  }
-
-  updateTokenLimits(token: string, remaining: number, resetAt: Date): void {
-    const tokenStatus = this.tokens.find((t) => t.token === token);
-    if (tokenStatus) {
-      tokenStatus.remainingPoints = remaining;
-      tokenStatus.resetAt = resetAt;
-    }
-  }
-
-  getTokenStatuses(): string {
-    return this.tokens
-      .map((t) => ({
-        token: t.token.slice(0, 8),
-        remaining: t.remainingPoints,
-        resetIn: Math.max(0, t.resetAt.getTime() - Date.now()) / 1000,
-      }))
-      .map(
-        (t) =>
-          `Token ${t.token}... Points: ${
-            t.remaining
-          }, Reset in: ${t.resetIn.toFixed(0)}s`,
-      )
-      .join("\n");
-  }
-
-  startStatusMonitoring(interval = 60000): void {
-    setInterval(() => {
-      console.log("\nToken Status:\n" + this.getTokenStatuses() + "\n");
-    }, interval);
   }
 }
 
-export default GitHubTokenManager;
+const tokenManager = new TokenManager(GITHUB_TOKENS);
+
+export default tokenManager;

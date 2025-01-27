@@ -3,7 +3,7 @@ import { GITHUB_TOKEN } from "../config";
 
 const client = new Client({
   url: "https://api.github.com/graphql",
-  exchanges: [cacheExchange, fetchExchange],
+  exchanges: [fetchExchange],
   fetchOptions: {
     headers: {
       Authorization: `Bearer ${GITHUB_TOKEN}`,

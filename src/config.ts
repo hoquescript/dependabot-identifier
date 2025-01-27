@@ -2,6 +2,7 @@ require("dotenv").config();
 
 export const CONCURRENCY = 5;
 export const BATCH_SIZE = 100;
+export const REPOSITORY_COUNT = 4597627;
 
 export const GITHUB_TOKENS: string[] = [
   process.env.GITHUB_TOKEN_1!,
@@ -20,4 +21,4 @@ export const DB_CONFIG = {
   database: process.env.DB_NAME,
 };
 
-export const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+export const GITHUB_TOKEN = process.env.GITHUB_TOKEN_2;

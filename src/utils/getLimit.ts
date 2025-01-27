@@ -5,7 +5,9 @@ import client from "../library/urql";
 
 async function getLimit() {
   try {
-    const { data } = await client.query(RATE_LIMIT_QUERY, {});
+    const { data } = await client.query(RATE_LIMIT_QUERY, {
+      caches: "no-cache",
+    });
 
     const parsedDate = parseISO(data.rateLimit.resetAt);
     const formattedDate = format(parsedDate, "do MMMM yyyy, h:mm a");

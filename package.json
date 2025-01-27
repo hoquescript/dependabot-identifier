@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "dev": "nodemon src/main.ts",
+    "dev": "nodemon src/app.ts",
     "build": "tsc",
     "start:dist": "node dist/src/index.js",
     "lint": "eslint --fix src test",
@@ -32,7 +32,8 @@
     "morgan": "^1.10.0",
     "p-queue": "^6.6.2",
     "pg": "^8.13.1",
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
