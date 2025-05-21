@@ -9,16 +9,15 @@ export interface Repository {
   user_name: string;
 }
 export async function getRepositories(props: {
-  offset: number;
+  lastId: number;
   limit: number;
 }): Promise<Repository[]> {
-  const { offset, limit } = props;
+  const { lastId, limit } = props;
   const query = `
-    SELECT id, name, user_name
-      FROM public.repositories t
-      ORDER BY id ASC
-      LIMIT ${limit}
-      OFFSET ${offset}
+    SELECT * FROM repositories
+         WHERE id > ${lastId}
+         ORDER BY id ASC
+         LIMIT ${limit};
   `;
 
   const { rows } = await pool.query(query);

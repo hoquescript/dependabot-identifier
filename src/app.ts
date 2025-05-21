@@ -10,13 +10,16 @@ import tokenManager from "./models/token";
 import { updateProgress } from "./models/progress";
 import logger from "./library/logger";
 
+const CURRENT_BATCH = 25597;
+const LAST_REPO_Id = 158220855;
 async function run() {
-  let offset = 706100;
-  let batch = 7061;
+  let batch = CURRENT_BATCH;
+  let offset = batch * BATCH_SIZE;
+  let lastId = LAST_REPO_Id;
   while (REPOSITORY_COUNT > offset) {
     try {
       const repositories = await getRepositories({
-        offset: offset,
+        lastId: lastId,
         limit: BATCH_SIZE,
       });
       const queries = generateQueries(repositories);
@@ -67,12 +70,13 @@ async function run() {
         offset_count: offset,
         batch_number: batch,
         first_repo: repositories[0].id,
-        last_repo: repositories[repositories.length - 1].id,
+        last_repo: lastId,
       });
 
       // Incrementing the values for the next batch
       offset += BATCH_SIZE;
       batch++;
+      lastId = repositories[repositories.length - 1].id;
     } catch (error) {
       console.log(error);
     }
